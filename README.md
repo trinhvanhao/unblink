@@ -2,8 +2,6 @@
 
 AI-powered camera monitoring application with relay-node architecture and real-time video processing.
 
-[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/zapdos-labs/unblink)
-
 ## Getting Started
 
 The node runs locally and connects to the relay:
