@@ -40,6 +40,8 @@ type Conn struct {
 	shutdown chan struct{}
 	closed   bool
 	closeMu  sync.Mutex
+	runErr   error
+	runErrMu sync.Mutex
 
 	// Bridges
 	bridges  map[string]*Bridge
@@ -104,7 +106,9 @@ func (c *Conn) Run() error {
 	// Wait for message loop to exit (disconnection or shutdown)
 	<-c.shutdown
 
-	return nil
+	c.runErrMu.Lock()
+	defer c.runErrMu.Unlock()
+	return c.runErr
 }
 
 // messageLoop reads messages from server and dispatches them to handlers
@@ -129,6 +133,10 @@ func (c *Conn) messageLoop() {
 
 		msg, err := c.transport.ReadMessage()
 		if err != nil {
+			if c.isShuttingDown() {
+				return
+			}
+			c.setRunError(err)
 			log.Printf("[Conn] Read error: %v", err)
 			return
 		}
@@ -456,6 +464,23 @@ func (c *Conn) Close() error {
 	}
 
 	return nil
+}
+
+func (c *Conn) setRunError(err error) {
+	c.runErrMu.Lock()
+	defer c.runErrMu.Unlock()
+	if c.runErr == nil {
+		c.runErr = err
+	}
+}
+
+func (c *Conn) isShuttingDown() bool {
+	select {
+	case <-c.shutdown:
+		return true
+	default:
+		return false
+	}
 }
 
 func (c *Conn) getMsgID() uint64 {
