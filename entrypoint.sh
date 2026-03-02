@@ -4,4 +4,4 @@ if [ -d /data/unblink ]; then
   chown -R appuser:appuser /data/unblink
 fi
 # Drop to appuser and run the command
-exec su-exec appuser "$@"
+exec gosu appuser "$@"

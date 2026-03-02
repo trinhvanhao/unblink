@@ -29,7 +29,10 @@ FROM alpine:3.19
 
 WORKDIR /usr/src/app
 
-RUN apk add --no-cache su-exec ca-certificates
+RUN apk add --no-cache ca-certificates && \
+    gosuArch=$(apk --print-arch) && \
+    wget -O /usr/local/bin/gosu "https://github.com/tianon/gosu/releases/download/1.17/gosu-$gosuArch" && \
+    chmod +x /usr/local/bin/gosu
 
 RUN adduser -D -s /bin/sh appuser
 
@@ -48,4 +51,4 @@ ENV DIST_PATH=/usr/src/app/dist
 EXPOSE 8080
 
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
-CMD ["/usr/local/bin/server"]
+CMD ["server"]
