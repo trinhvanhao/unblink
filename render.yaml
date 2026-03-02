@@ -41,5 +41,3 @@ services:
         value: "3"
       - key: ENABLE_INDEXING
         value: "true"
-      - key: CONFIG_DIR
-        value: /data/unblink
