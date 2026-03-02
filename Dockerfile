@@ -9,7 +9,7 @@ COPY go.mod go.sum ./
 RUN go mod download
 
 COPY . .
-RUN CGO_ENABLED=0 GOOS=linux go build -o server ./cmd/server/main.go
+RUN CGO_ENABLED=0 GOOS=linux go build -o unblink-server ./cmd/server/main.go
 
 # Build stage for frontend
 FROM oven/bun:1-alpine AS web-builder
@@ -36,8 +36,8 @@ RUN apk add --no-cache ca-certificates wget && \
 
 RUN adduser -D -s /bin/sh appuser
 
-COPY --from=go-builder /usr/src/app/server /usr/local/bin/server
-RUN chmod +x /usr/local/bin/server && chown appuser:appuser /usr/local/bin/server
+COPY --from=go-builder /usr/src/app/unblink-server /usr/local/bin/unblink-server
+RUN chmod +x /usr/local/bin/unblink-server && chown appuser:appuser /usr/local/bin/unblink-server
 COPY --from=web-builder /usr/src/app/dist ./dist
 
 RUN mkdir -p /data/unblink && chown -R appuser:appuser /data/unblink
@@ -51,4 +51,4 @@ ENV DIST_PATH=/usr/src/app/dist
 EXPOSE 8080
 
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
-CMD ["/usr/local/bin/server"]
+CMD ["/usr/local/bin/unblink-server"]
