@@ -1,7 +1,6 @@
 #!/bin/sh
-# Fix ownership of the data directory if it exists
-if [ -d /data/unblink ]; then
-  chown -R appuser:appuser /data/unblink
-fi
+mkdir -p /data/unblink
+chown -R appuser:appuser /data/unblink
+
 # Drop to appuser and run the command
 exec gosu appuser "$@"
