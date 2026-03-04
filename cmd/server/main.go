@@ -104,6 +104,7 @@ func main() {
 		idleTimeout,
 		config.BridgeMaxRetries,
 		config.EnableIndexing,
+		config.EnableRecording,
 	)
 	liveUpdateService := service.NewLiveUpdateService(dbClient, serviceRegistry)
 

@@ -43,6 +43,7 @@ type ServiceRegistry struct {
 	clipSegmentDuration time.Duration
 	srv                 *server.Server
 	enableIndexing      bool // Enable frame indexing/extraction
+	enableRecording     bool // Enable clip recording
 
 	mu          sync.RWMutex
 	services    map[string]*ServiceState   // serviceID -> ServiceState
@@ -60,7 +61,7 @@ type ServiceRegistry struct {
 }
 
 // NewServiceRegistry creates a new service registry
-func NewServiceRegistry(db *database.Client, frameInterval time.Duration, clipBaseDir string, storage *webrtc.Storage, srv *server.Server, batchMgr *webrtc.BatchManager, idleTimeout time.Duration, maxRetries int, enableIndexing bool) *ServiceRegistry {
+func NewServiceRegistry(db *database.Client, frameInterval time.Duration, clipBaseDir string, storage *webrtc.Storage, srv *server.Server, batchMgr *webrtc.BatchManager, idleTimeout time.Duration, maxRetries int, enableIndexing bool, enableRecording bool) *ServiceRegistry {
 	// Wire up callback to save frame metadata to database when frames are saved to disk
 	storage.SetOnSaved(func(serviceID, frameID, framePath string, timestamp time.Time, fileSize int64) {
 		metadata := &database.FrameMetadata{}
@@ -78,6 +79,7 @@ func NewServiceRegistry(db *database.Client, frameInterval time.Duration, clipBa
 		clipSegmentDuration: 15 * time.Minute,
 		srv:                 srv,
 		enableIndexing:      enableIndexing,
+		enableRecording:     enableRecording,
 		services:            make(map[string]*ServiceState),
 		nodes:               make(map[string]map[string]bool),
 		onlineNodes:         make(map[string]bool),
@@ -263,6 +265,11 @@ func (r *ServiceRegistry) SetNodeOffline(nodeID string) {
 
 // startHandlerLocked starts the service handler for a service (caller must hold lock)
 func (r *ServiceRegistry) startHandlerLocked(state *ServiceState) {
+	if !r.enableIndexing && !r.enableRecording {
+		log.Printf("[ServiceRegistry] Skipping handler for service %s because indexing and recording are disabled", state.ID)
+		return
+	}
+
 	// Create handler with configuration
 	handler := NewServiceHandler(ServiceHandlerConfig{
 		ServiceID:           state.ID,
@@ -275,6 +282,7 @@ func (r *ServiceRegistry) startHandlerLocked(state *ServiceState) {
 		ClipBaseDir:         r.clipBaseDir,
 		ClipSegmentDuration: r.clipSegmentDuration,
 		EnableIndexing:      r.enableIndexing,
+		EnableRecording:     r.enableRecording,
 		OnClipSaved: func(serviceID, clipPath string, startTime, endTime time.Time, fileSize int64, metadata *database.ClipMetadata) {
 			if err := r.db.SaveStorageItem(serviceID, clipPath, startTime, fileSize, database.StorageTypeClip, "video/mp4", metadata); err != nil {
 				log.Printf("[ServiceRegistry] Failed to save clip metadata: %v", err)

@@ -39,6 +39,7 @@ type ServiceHandler struct {
 	clipBaseDir         string
 	clipSegmentDuration time.Duration
 	enableIndexing      bool
+	enableRecording     bool
 
 	// Context for cancellation
 	ctx    context.Context
@@ -57,6 +58,7 @@ type ServiceHandlerConfig struct {
 	ClipBaseDir         string
 	ClipSegmentDuration time.Duration
 	EnableIndexing      bool
+	EnableRecording     bool
 	OnClipSaved         func(serviceID, clipPath string, startTime, endTime time.Time, fileSize int64, metadata *database.ClipMetadata)
 }
 
@@ -74,6 +76,7 @@ func NewServiceHandler(cfg ServiceHandlerConfig) *ServiceHandler {
 		clipBaseDir:         cfg.ClipBaseDir,
 		clipSegmentDuration: cfg.ClipSegmentDuration,
 		enableIndexing:      cfg.EnableIndexing,
+		enableRecording:     cfg.EnableRecording,
 		onClipSaved:         cfg.OnClipSaved,
 		ctx:                 ctx,
 		cancel:              cancel,
@@ -122,11 +125,13 @@ func (h *ServiceHandler) Start() error {
 	}()
 
 	clipRecorderStarted := false
-	h.clipRecorder = webrtc.NewClipRecorder(h.serviceID, h.clipBaseDir, h.clipSegmentDuration, h.onClipSaved)
-	if err := h.clipRecorder.Start(h.mediaSource); err != nil {
-		log.Printf("[ServiceHandler] Failed to start clip recorder for service %s: %v", h.serviceID, err)
-	} else {
-		clipRecorderStarted = true
+	if h.enableRecording {
+		h.clipRecorder = webrtc.NewClipRecorder(h.serviceID, h.clipBaseDir, h.clipSegmentDuration, h.onClipSaved)
+		if err := h.clipRecorder.Start(h.mediaSource); err != nil {
+			log.Printf("[ServiceHandler] Failed to start clip recorder for service %s: %v", h.serviceID, err)
+		} else {
+			clipRecorderStarted = true
+		}
 	}
 
 	if h.enableIndexing {
@@ -167,7 +172,7 @@ func (h *ServiceHandler) Start() error {
 			nodeConn.CloseBridge(ctx, bridgeID)
 			return fmt.Errorf("failed to start extractor: %w", err)
 		}
-	} else if !clipRecorderStarted {
+	} else if h.enableRecording && !clipRecorderStarted {
 		h.mediaSource.Close()
 		h.bridgeConn.Close()
 		ctx := context.Background()

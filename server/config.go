@@ -54,7 +54,8 @@ type Config struct {
 	DistPath string `json:"dist_path,omitempty"` // Path to frontend dist directory (optional)
 
 	// Frame indexing settings
-	EnableIndexing bool `json:"enable_indexing"` // Enable frame indexing (default true).
+	EnableIndexing  bool `json:"enable_indexing"`  // Enable frame indexing (default true).
+	EnableRecording bool `json:"enable_recording"` // Enable clip recording (default true).
 }
 
 func (c *Config) applyModelFallbacks() {
@@ -183,6 +184,7 @@ func (c *Config) ClipsBaseDir() string {
 //   - BRIDGE_IDLE_TIMEOUT_SEC: Bridge idle timeout (default: 300)
 //   - BRIDGE_MAX_RETRIES: Bridge max retries (default: 3)
 //   - ENABLE_INDEXING: Enable frame indexing (default: true)
+//   - ENABLE_RECORDING: Enable clip recording (default: true)
 //   - CONFIG_DIR: Application storage directory (default: ~/.unblink)
 func LoadConfig() (*Config, error) {
 	cfg := &Config{}
@@ -228,6 +230,7 @@ func LoadConfig() (*Config, error) {
 
 	// Indexing
 	cfg.EnableIndexing = getEnvBool("ENABLE_INDEXING", true)
+	cfg.EnableRecording = getEnvBool("ENABLE_RECORDING", true)
 
 	// Configuration directory (storage root)
 	cfg.AppDir = getEnv("CONFIG_DIR", defaultConfigDir())

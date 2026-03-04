@@ -41,3 +41,5 @@ services:
         value: "3"
       - key: ENABLE_INDEXING
         value: "true"
+      - key: ENABLE_RECORDING
+        value: "true"

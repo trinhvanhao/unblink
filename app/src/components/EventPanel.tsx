@@ -1,5 +1,5 @@
 import { FiChevronLeft, FiChevronRight, FiClock } from 'solid-icons/fi';
-import { For, Show, createSignal, type Accessor } from 'solid-js';
+import { For, Show, createEffect, createSignal, onCleanup, type Accessor } from 'solid-js';
 import { useEvents } from '../hooks/useEvents';
 import { services } from '../shared';
 import { formatDistance } from 'date-fns';
@@ -12,6 +12,19 @@ interface EventPanelProps {
 
 export function useEventPanel(props: EventPanelProps) {
   const [showEventPanel, setShowEventPanel] = createSignal(true);
+  const [now, setNow] = createSignal(Date.now());
+
+  createEffect(() => {
+    if (!showEventPanel()) {
+      return;
+    }
+
+    const interval = setInterval(() => {
+      setNow(Date.now());
+    }, 1000);
+
+    onCleanup(() => clearInterval(interval));
+  });
 
   // Get all services
   const allServices = () => services();
@@ -99,7 +112,7 @@ export function useEventPanel(props: EventPanelProps) {
                         <div class="font-semibold text-white">{getServiceName(event.serviceId)}</div>
                         <div class="text-neu-400 text-sm flex items-center gap-1">
                           <FiClock class="w-3 h-3" />
-                          {event.createdAt ? formatDistance(new Date(Number(event.createdAt.seconds) * 1000), new Date(), {
+                          {event.createdAt ? formatDistance(new Date(Number(event.createdAt.seconds) * 1000), new Date(now()), {
                             addSuffix: true,
                             includeSeconds: true,
                           }) : 'Unknown time'}
