@@ -1,13 +1,13 @@
 import { services, activeTab } from '../shared'
 import VideoTile from './VideoTile'
 import { useEventPanel } from './EventPanel'
-import { createMemo, Show } from 'solid-js'
+import { Show } from 'solid-js'
 
 export default function CameraView() {
-  const currentViewTab = createMemo(() => {
+  const currentViewTab = () => {
     const tab = activeTab()
     return tab.type === 'view' ? tab : null
-  })
+  }
 
   // Get current service ID for filtering events
   const serviceIdAccessor = () => currentViewTab()?.serviceId

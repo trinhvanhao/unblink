@@ -18,7 +18,7 @@ import (
 	"github.com/zapdos-labs/unblink/database"
 )
 
-const partialClipSuffix = ".part"
+const partialClipSuffix = ".part.mp4"
 
 var clipSegmentOpenPattern = regexp.MustCompile(`Opening '([^']+)' for writing`)
 
