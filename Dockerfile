@@ -1,54 +1,36 @@
-# Build stage for Go backend
-FROM golang:1.25-alpine AS go-builder
+FROM ghcr.io/railwayapp/nixpacks:ubuntu-1745885067
 
-WORKDIR /usr/src/app
+ENTRYPOINT ["/bin/bash", "-l", "-c"]
+WORKDIR /app/
+RUN apt-get update && apt-get install -y golang-go
 
-RUN apk add --no-cache git
 
-COPY go.mod go.sum ./
-RUN go mod download
 
-COPY . .
-RUN CGO_ENABLED=0 GOOS=linux go build -o unblink-server ./cmd/server/main.go
 
-# Build stage for frontend
-FROM oven/bun:1-alpine AS web-builder
+ARG CGO_ENABLED NIXPACKS_METADATA
+ENV CGO_ENABLED=$CGO_ENABLED NIXPACKS_METADATA=$NIXPACKS_METADATA
 
-WORKDIR /usr/src/app
+# setup phase
+# noop
 
-COPY app/package.json app/bun.lock* ./
-RUN bun install --frozen-lockfile
+# install phase
+COPY . /app/.
+RUN --mount=type=cache,id=0FQoiH47Zrw-/root/cache/go-build,target=/root/.cache/go-build go mod download
 
-COPY app/ .
-ARG VITE_SERVER_API_PORT=8080
-ENV VITE_SERVER_API_PORT=${VITE_SERVER_API_PORT}
-RUN bun run build
+# build phase
+COPY . /app/.
+RUN --mount=type=cache,id=0FQoiH47Zrw-/root/cache/go-build,target=/root/.cache/go-build go build -o out ./cmd/bbox_test
 
-# Runtime stage
-FROM alpine:3.19
 
-WORKDIR /usr/src/app
 
-RUN apk add --no-cache ca-certificates wget ffmpeg && \
-    gosuArch=$(apk --print-arch | sed -e 's/x86_64/amd64/' -e 's/aarch64/arm64/') && \
-    wget -O /usr/local/bin/gosu "https://github.com/tianon/gosu/releases/download/1.19/gosu-$gosuArch" && \
-    chmod +x /usr/local/bin/gosu
 
-RUN adduser -D -s /bin/sh appuser
 
-COPY --from=go-builder /usr/src/app/unblink-server /usr/local/bin/unblink-server
-RUN chmod +x /usr/local/bin/unblink-server && chown appuser:appuser /usr/local/bin/unblink-server
-COPY --from=web-builder /usr/src/app/dist ./dist
+# start
+FROM ubuntu:noble
+ENTRYPOINT ["/bin/bash", "-l", "-c"]
+WORKDIR /app/
+COPY --from=0 /etc/ssl/certs /etc/ssl/certs
+RUN true
+COPY --from=0 /app/ /app/
 
-RUN mkdir -p /data/unblink && chown -R appuser:appuser /data/unblink
-
-COPY entrypoint.sh /usr/local/bin/entrypoint.sh
-RUN chmod +x /usr/local/bin/entrypoint.sh
-
-ENV PORT=8080
-ENV CONFIG_DIR=/data/unblink
-ENV DIST_PATH=/usr/src/app/dist
-EXPOSE 8080
-
-ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
-CMD ["/usr/local/bin/unblink-server"]
+CMD ["./out"]
